@@ -1,4 +1,4 @@
-# VGG Image Annotator
+# \[My fork of the\] VGG Image Annotator
 
 VGG Image Annotator (VIA) is an image annotation tool that can be used to define 
 regions in an image and create textual descriptions of those regions. VIA is an 
@@ -7,6 +7,25 @@ and released under the BSD-2 clause license. This work is supported by EPSRC pro
 Seebibyte: Visual Search for the Era of Big Data ([EP/M013774/1](http://www.seebibyte.org/index.html)).
 Visit the [VGG software page](http://www.robots.ox.ac.uk/~vgg/software/via/) for more details.
 
+## Differences in this Fork:
+This fork mainly adds the *width* and *height* of the original image to the output metadata in
+both JSON and CSV format.  The CSV header is thus changed from the original version:
+
+    filename,file_size,file_attributes,region_count,region_id,region_shape_attributes,region_attributes
+
+to this version:
+
+    filename,file_size,width,height,file_attributes,region_count,region_id,region_shape_attributes,region_attributes
+
+and the JSON annotation format has the additional fields `width` and `height`
+associated with every image file.
+
+**Caveat**
+
+Because the width and height cannot be obtained until the image is rendered into 
+the DOM, these fields may be set to the string "NA" for any image that has not 
+been annotated yet in the viewer.  Thus, the valid values for `width` and `height` are
+integers or "NA".
 
 ## Features:
   * based solely on HTML, CSS and Javascript (no external javascript libraries)
