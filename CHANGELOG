@@ -1,3 +1,6 @@
+## [2.0.0a] - July 24, 2018
+ * added 'width', 'height' of each image to the output formats (CSV and JSON).
+   - valid values are integers or "NA" if the values aren't known at the time of export.
 ## [2.0.0] - July 15, 2018
  * rectangles can now be resized from edges (issue 120)
  * added POLYLINE shape
