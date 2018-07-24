@@ -71,3 +71,7 @@ VIA is an open source project released under the
 ## Author
 [Abhishek Dutta](mailto:adutta@robots.ox.ac.uk)  
 Aug. 31, 2016
+
+Changes in this fork by:
+[Jason L Causey](https://jasoncausey.net)
+July 24, 2018
