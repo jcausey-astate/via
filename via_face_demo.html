@@ -1634,7 +1634,7 @@ function import_annotations_from_csv(data) {
 function parse_csv_header_line(line) {
   var header_via_10x  = '#filename,file_size,file_attributes,region_count,region_id,region_shape_attributes,region_attributes'; // VIA versions 1.0.x
   var header_via_11x  = 'filename,file_size,file_attributes,region_count,region_id,region_shape_attributes,region_attributes'; // VIA version 1.1.x
-  var header_via_11xa = 'filename,file_size,width,height,file_attributes,region_count,region_id,region_shape_attributes,region_attributes'; // VIA version 1.1.x (a)
+  var header_via_20xa = 'filename,file_size,width,height,file_attributes,region_count,region_id,region_shape_attributes,region_attributes'; // VIA version 2.0.x (a)
 
   if ( line === header_via_10x || line === header_via_11x ) {
     return { 'is_header':true,
@@ -1647,7 +1647,7 @@ function parse_csv_header_line(line) {
              'width_index': 'NA',
              'height_index': 'NA'
            }
-  } else if ( line === header_via_11xa ) {
+  } else if ( line === header_via_20xa ) {
     return { 'is_header':true,
              'filename_index': 0,
              'size_index': 1,
