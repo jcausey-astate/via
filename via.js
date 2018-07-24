@@ -55,9 +55,9 @@
 
 "use strict";
 
-var VIA_VERSION      = '2.0.0';
-var VIA_NAME         = 'VGG Image Annotator';
-var VIA_SHORT_NAME   = 'VIA';
+var VIA_VERSION      = '2.0.0a';
+var VIA_NAME         = 'VGG Image Annotator (a)';
+var VIA_SHORT_NAME   = 'VIAa';
 var VIA_REGION_SHAPE = { RECT:'rect',
                          CIRCLE:'circle',
                          ELLIPSE:'ellipse',
@@ -290,12 +290,17 @@ var VIA_LEFTSIDEBAR_WIDTH_CHANGE          = 1; // in rem
 
 //
 // Data structure to store metadata about file and regions
+// {width,height} must be set when the image is
+// actually loaded/displayed; "NA" is used until that 
+// happens.
 //
 function file_metadata(filename, size) {
   this.filename = filename;
-  this.size     = size;         // file size in bytes
-  this.regions  = [];           // array of file_region()
-  this.file_attributes = {};    // image attributes
+  this.size     = size;       // file size in bytes
+  this.regions  = [];         // array of file_region()
+  this.file_attributes = {};  // image attributes
+  this.width    = "NA";       // original width in pixels
+  this.height   = "NA";       // original height in pixels
 }
 
 function file_region() {
@@ -535,6 +540,8 @@ function import_annotations_from_csv(data) {
 
       var filename = d[parsed_header.filename_index];
       var size     = d[parsed_header.size_index];
+      var width    = d[parsed_header.width_index];
+      var height   = d[parsed_header.height_index];
       var img_id   = _via_get_image_id(filename, size);
 
       // check if file is already present in this project
@@ -551,6 +558,10 @@ function import_annotations_from_csv(data) {
           first_img_id = img_id;
         }
       }
+
+      // set width and height
+      _via_img_metadata[img_id].width  = width;
+      _via_img_metadata[img_id].height = height;
 
       // copy file attributes
       if ( d[parsed_header.file_attr_index] !== '"{}"') {
@@ -633,8 +644,9 @@ function import_annotations_from_csv(data) {
 }
 
 function parse_csv_header_line(line) {
-  var header_via_10x = '#filename,file_size,file_attributes,region_count,region_id,region_shape_attributes,region_attributes'; // VIA versions 1.0.x
-  var header_via_11x = 'filename,file_size,file_attributes,region_count,region_id,region_shape_attributes,region_attributes'; // VIA version 1.1.x
+  var header_via_10x  = '#filename,file_size,file_attributes,region_count,region_id,region_shape_attributes,region_attributes'; // VIA versions 1.0.x
+  var header_via_11x  = 'filename,file_size,file_attributes,region_count,region_id,region_shape_attributes,region_attributes'; // VIA version 1.1.x
+  var header_via_11xa = 'filename,file_size,width,height,file_attributes,region_count,region_id,region_shape_attributes,region_attributes'; // VIA version 1.1.x (a)
 
   if ( line === header_via_10x || line === header_via_11x ) {
     return { 'is_header':true,
@@ -643,9 +655,23 @@ function parse_csv_header_line(line) {
              'file_attr_index': 2,
              'region_shape_attr_index': 5,
              'region_attr_index': 6,
-             'csv_column_count': 7
+             'csv_column_count': 7,
+             'width_index': 'NA',
+             'height_index': 'NA'
            }
-  } else {
+  } else if ( line === header_via_11xa ) {
+    return { 'is_header':true,
+             'filename_index': 0,
+             'size_index': 1,
+             'width_index':2,
+             'height_index':3,
+             'file_attr_index': 4,
+             'region_shape_attr_index': 7,
+             'region_attr_index': 8,
+             'csv_column_count': 9
+           }
+  }
+  else {
     return { 'is_header':false };
   }
 }
@@ -664,6 +690,9 @@ function import_annotations_from_json(data) {
     for (var img_id in d) {
       var filename = d[img_id].filename;
       var size     = d[img_id].size;
+      var width    = d[img_id].width;
+      var height   = d[img_id].height;
+
       var comp_img_id = _via_get_image_id(filename, size);
       if ( comp_img_id !== img_id ) {
         // discard malformed entry
@@ -680,6 +709,10 @@ function import_annotations_from_json(data) {
         }
         file_added_count += 1;
       }
+
+      // set width, height
+      _via_img_metadata[img_id].width  = width;
+      _via_img_metadata[img_id].height = height;
 
       // copy file attributes
       var key;
@@ -801,6 +834,8 @@ function parse_csv_line(s, field_separator) {
   }
   // extract the last field (csv rows have no trailing comma)
   d.push( s.substr(start) );
+  // For (a) version support, the special index 'NA' is used for values that aren't present:
+  d['NA'] = 'NA';
   return d;
 }
 
@@ -947,7 +982,7 @@ function import_files_url_from_csv(data) {
 function pack_via_metadata(return_type) {
   if( return_type === 'csv' ) {
     var csvdata = [];
-    var csvheader = 'filename,file_size,file_attributes,region_count,region_id,region_shape_attributes,region_attributes';
+    var csvheader = 'filename,file_size,width,height,file_attributes,region_count,region_id,region_shape_attributes,region_attributes';
     csvdata.push(csvheader);
 
     for ( var image_id in _via_img_metadata ) {
@@ -956,6 +991,9 @@ function pack_via_metadata(return_type) {
 
       var prefix = '\n' + _via_img_metadata[image_id].filename;
       prefix += ',' + _via_img_metadata[image_id].size;
+      // If width/height isn't set yet, use "NA" as a marker in the file.
+      prefix += ',' + ( _via_img_metadata[image_id].width || "NA" )
+      prefix += ',' + ( _via_img_metadata[image_id].height || "NA" )
       prefix += ',"' + fattr + '"';
 
       var r = _via_img_metadata[image_id].regions;
@@ -6194,6 +6232,7 @@ function project_file_add_local(event) {
   for ( var i = 0; i < user_selected_images.length; ++i ) {
     var filetype = user_selected_images[i].type.substr(0, 5);
     if ( filetype === 'image' ) {
+      console.log(user_selected_images[i])
       var filename = user_selected_images[i].name;
       var size     = user_selected_images[i].size;
       var img_id1  = _via_get_image_id(filename, size);
@@ -7831,6 +7870,12 @@ function _via_show_img_from_buffer(img_index) {
     _via_user_sel_region_id = -1;
     _via_current_image_width = _via_current_image.naturalWidth;
     _via_current_image_height = _via_current_image.naturalHeight;
+    if ( _via_img_metadata[_via_image_id].width == 'NA' ){
+      console.log(`Setting width=${_via_current_image_width} and height=${_via_current_image_height}.`);
+      _via_img_metadata[_via_image_id].width  = _via_current_image_width;
+      _via_img_metadata[_via_image_id].height = _via_current_image_height;
+      // console.log(_via_img_metadata[_via_image_id])
+    }
 
     if ( _via_current_image_width === 0 || _via_current_image_height === 0 ) {
       // for error image icon
